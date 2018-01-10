@@ -59,7 +59,7 @@ def nextbus_get_agencies():
     response = parse_xml(response.text)
 
     agencies = []
-    for agency in response.getroot().findall("agency"):
+    for agency in response.findall("agency"):
         agencies.append((agency.attrib['tag'], agency.attrib['title'], agency.attrib.get('regionTitle', None)))
     return agencies
 
@@ -71,7 +71,7 @@ def nextbus_get_routes(agency):
     response = parse_xml(response.text)
 
     routes = []
-    for route in response.getroot().findall("route"):
+    for route in response.findall("route"):
         routes.append((route.attrib['tag'], route.attrib['title']))
     return routes
 
@@ -82,14 +82,15 @@ def nextbus_get_route_info(agency, route):
     response = requests.get(NEXTBUS_ENDPOINT, params={'command': 'routeConfig', 'a': agency, 'r': route})
     response = parse_xml(response.text)
 
+    route = response.find("route")
     stops = []
-    for stop in response.getroot().find("route"):
-        stops.append((route.attrib['tag'], route.attrib['title']))
+    for stop in route.findall("stop"):
+        stops.append((stop.attrib['tag'], stop.attrib['title']))
 
     directions = []
-    for direction in response.getroot().findall("direction"):
-        dir_tag = direction.attribs['tag']
-        dir_title = direction.attribs['title']
+    for direction in route.findall("direction"):
+        dir_tag = direction.attrib['tag']
+        dir_title = direction.attrib['title']
         dir_stops = []
         for stop in direction:
             dir_stops.append(stop.attrib['tag'])
@@ -97,7 +98,7 @@ def nextbus_get_route_info(agency, route):
 
     return { 'stops': stops, 'directions': directions }
 
-def nextbus_get_prediction(agency, route, stop, direction):
+def nextbus_get_predictions(agency, route, stop, filterDirection):
     """
     returns a list of (epochTime, routeTitle, stopTitle) tuples
     """
@@ -105,10 +106,10 @@ def nextbus_get_prediction(agency, route, stop, direction):
     response = parse_xml(response.text)
 
     predictions = []
-    for predictionSet in response.getroot().findall("predictions"):
-        for direction in predictionSet.findall("directions"):
+    for predictionSet in response.findall("predictions"):
+        for direction in predictionSet.findall("direction"):
             for prediction in direction.findall("prediction"):
-                if prediction.attrib['dirTag'] != direction:
+                if prediction.attrib['dirTag'] != filterDirection:
                     continue
                 epochTime = prediction.attrib['epochTime']
                 routeTitle = predictionSet.attrib['routeTitle']
@@ -116,3 +117,4 @@ def nextbus_get_prediction(agency, route, stop, direction):
                 predictions.append((epochTime, routeTitle, stopTitle))
 
     return predictions
+
