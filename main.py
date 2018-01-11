@@ -93,6 +93,8 @@ def handle_add(user_id, payload):
     if payload.get('actions', None):
         data = json.loads(payload['actions'][0]['selected_options'][0]['value'])
         callback_id = payload.get('callback_id', None)
+    else:
+        data = payload  # this is a hack so the / handler can call this function with name
 
     name = data['name']
     agency_tag = data.get('a', None)
@@ -226,7 +228,7 @@ def handle_predictions(user_id, entered_name):
     attachments = []
     for prediction in predictions:
         attachments.append({
-            "text": time_left(prediction)
+            "text": time_left(prediction),
             "text": "*" + time_left(prediction) + "* for " + route_name + " at " + stop_name,
         })
 
