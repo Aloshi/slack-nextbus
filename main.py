@@ -218,21 +218,20 @@ def time_left(prediction):
 
 def handle_predictions(user_id, entered_name):
     name, agency_tag, agency_name, route_tag, route_name, stop_tag, stop_name, dir_tag, dir_name = get_user_route(user_id, entered_name)
-    predictions = nextbus_get_predictions(agency_tag, route_tag, stop_tag, dir_tag)
+    predictions, messages = nextbus_get_predictions(agency_tag, route_tag, stop_tag, dir_tag)
 
     if len(predictions) == 0:
         return "It doesn't seem like any buses are coming for " + entered_name + "! Oh dear. I hope you can walk."
 
-    # TODO point out "last bus"
-
     attachments = []
     for prediction in predictions:
         attachments.append({
-            "text": time_left(prediction),
-            "text": "*" + time_left(prediction) + "* for " + route_name + " at " + stop_name,
+            "text": "*" + time_left(prediction) + "* - " + route_name + " at " + stop_name,
+            "mrkdwn_in": ["text"]
         })
 
     return jsonify({
+        "text": '\n'.join(messages) if len(messages) > 0 else None,
         "attachments": attachments
     })
 
@@ -323,7 +322,10 @@ def nextbus_get_predictions(agency, route, stop, filterDirection):
     response = parse_xml(response.text)
 
     predictions = []
+    messages = []
     for predictionSet in response.findall("predictions"):
+        for message in predictionSet.findall("message"):
+            messages.append(message.attrib['text'])
         for direction in predictionSet.findall("direction"):
             for prediction in direction.findall("prediction"):
                 if prediction.attrib['dirTag'] != filterDirection:
@@ -333,5 +335,5 @@ def nextbus_get_predictions(agency, route, stop, filterDirection):
                 stopTitle = predictionSet.attrib['stopTitle']
                 predictions.append((epochTime, routeTitle, stopTitle))
 
-    return predictions
+    return predictions, messages
 
